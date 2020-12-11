@@ -1,117 +1,120 @@
 INCLUDE "hardware.inc"
 
 
-SECTION "Header", ROM0[$100] ; Execution starts at $100
+SECTION "Header", ROM0[$0100]
+; PURPOSE: Contains cartridge metadata and execution entrypoint
+; LABELS: None
+;
+; Execution starts at $100, while $104 to $14F contains required header data in
+; a fixed format. As a consequence, meaningful program initialisation cannot be
+; done here - we have just enough instructions to jump to a "real" entrypoint
+; for the program.
 
-; We only have 4 bytes of code before the header proper - just enough to jump away
-EntryPoint:
-    di ; disable interrupts for simplicity
+    nop
     jp Start
 
-; Header is from $104 to $14F - just zero it out, the correct values will be set by the toolchain
-REPT $150 - $104
-    db 0
-ENDR
+    ; Pad the header with zeros - the real data is written by the toolchain
+    ds $0150 - @
 
 
 SECTION "Main", ROM0
+; PURPOSE: Program initialisation and main loop
+; LABELS:
+;  - Start: program entrypoint
+;
+; We initialise the program by loading required data into VRAM, configuring
+; system parameters (screen, sound etc.) and then entering the main loop.
 
-; We'll jump in here from the header
 Start:
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; prepare VRAM for initialisation
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; step: prepare VRAM for initialisation
 
-; wait for LCD to enter VBlank
-.waitVBlank
+.waitVBlank: ; loop: wait for LCD to enter VBlank
     ld a, [rLY]
     cp SCRN_Y
     jr c, .waitVBlank
+; end loop
 
-; turn off the LCD so we can access VRAM
     xor a ; (ld a, 0)
-    ld [rLCDC], a
+    ld [rLCDC], a ; turn off the LCD so we can access VRAM
 
-    ld hl, _VRAM9000 ; copy font tiles in here
-    ld de, FontTiles ; copy from here
-    ld bc, FontTilesEnd - FontTiles ; this many bytes remain
+; step: load font tile data into VRAM
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; load in font tiles
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ld de, _VRAM9000 ; copy font tile data here
+    ld hl, FontTiles ; copy from here
+    ld bc, FontTilesEnd - FontTiles ; number of bytes remaining
 
-.loadFontTiles
+.loadFontTiles: ; loop: load each byte of tile data
     ; load this byte
-    ld a, [de]
-    ld [hli], a
+    ld a, [hl+]
+    ld [de], a
 
-    inc de ; move to next byte
+    inc de ; move to next position
     dec bc ; decrease bytes remaining
 
     ; check if bytes remain
     ld a, b
     or c
 
-    ; copy next byte
     jr nz, .loadFontTiles
+; end loop
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; fill the tile map with our desired tiles
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; step: fill the tile map with our desired tiles
 
-    ld hl, _SCRN0 ; start writing tiles here
-    ld de, HelloStr ; start reading tiles from here
+    ld de, _SCRN0 ; write tiles here
+    ld hl, HelloStr ; read tiles from here
 
-.copyStrTiles
-    ; copy this tile
-    ld a, [de]
-    ld [hli], a
+.copyStrTiles: ; loop: copy each tile into tile map
+    ld a, [hl+]
+    ld [de], a ; copy this tile
 
-    inc de ; move to next tile
+    inc de ; move to next position
+
     and a ; check if string is terminated
 
-    ; copy next tile
     jr nz, .copyStrTiles
+; end loop
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; finish initialisation
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; step: finish initialisation
 
-    ; set colour palette
     ld a, %11100100
-    ld [rBGP], a
+    ld [rBGP], a ; set colour palette
 
     xor a ; (ld a, 0)
 
-    ; set scroll to (0,0)
     ld [rSCY], a
-    ld [rSCX], a
+    ld [rSCX], a ; set scroll to (0, 0)
 
-    ; turn off sound
-    ld [rNR52], a
+    ld [rNR52], a ; turn off sound
 
-    ; turn screen on
-    ; ld a, %10000001
     ld a, LCDCF_ON | LCDCF_BGON
-    ld [rLCDC], a
+    ld [rLCDC], a ; turn screen on, display background
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; main loop
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; step: main loop
 
-.loop
+.loop: ; loop: spin indefinitely
     jr .loop
+; end loop
 
 
 SECTION "Font", ROM0
+; PURPOSE: Contains font tile data
+; LABELS:
+;  - FontTiles: start of font tile data
+;  - FontTilesEnd: end of font tile data
+;
+; Contains 128 tiles corresponding to ASCII characters.
 
 FontTiles:
 INCBIN "font.chr"
 FontTilesEnd:
 
 
-Section "Messages", rom0
+SECTION "Messages", ROM0
+; PURPOSE: Contains character data for displayable messages
+; LABELS: (as below)
+;
+; Character data is kept separately from code sections for clarity and reuse.
 
 HelloStr:
     db "Hello World!", 0

@@ -1,4 +1,10 @@
-main: main.gb
+ifeq ($(OS),Windows_NT)
+	DELETE=del
+else
+	DELETE=rm -f
+endif
+
+all: main.gb
 	rgbfix -v -p 0 main.gb
 
 main.gb: main.o
@@ -8,4 +14,4 @@ main.o: main.asm hardware.inc font.chr
 	rgbasm -o main.o main.asm
 
 clean:
-	rm -rf main.gb main.map main.sym main.o
+	$(DELETE) *.gb *.map *.sym *.o
