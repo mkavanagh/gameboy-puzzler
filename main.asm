@@ -111,6 +111,18 @@ VBlank::
     ld de, _SCRN0 ; destination address (tile map 0)
     call WriteStr
 
+    ld a, 12 ; width of text in tiles
+    rla
+    rla
+    rla ; multiply by 8 to get width in pixels
+    ld h, a
+
+    ld a, 1 ; height of text in tiles
+    rla
+    rla
+    rla ; multiply by 8 to get height in pixels
+    ld l, a
+
 ; move either right or left, bouncing off the edge
 .moveHorizontal:
     ld a, [DirX]
@@ -123,7 +135,9 @@ VBlank::
     dec a
     ld [rSCX], a
 
-    cp 185 ; detect right-edge collision
+    xor $FF ; (xpos = 256 - scrollx)
+    add h ; add text width in pixels
+    cp SCRN_X ; detect right-edge collision
     jr z, .changeLeft
     jr .moveVertical
 
@@ -157,7 +171,9 @@ VBlank::
     dec a
     ld [rSCY], a
 
-    cp 119 ; detect bottom-edge collision
+    xor $FF ; (ypos = 256 - scrolly)
+    add l ; add text height in pixels
+    cp SCRN_Y ; detect bottom-edge collision
     jr z, .changeUp
     jr .exit
 
