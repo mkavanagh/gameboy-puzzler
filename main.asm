@@ -111,16 +111,85 @@ VBlank::
     ld de, _SCRN0 ; destination address (tile map 0)
     call WriteStr
 
+; move either right or left, bouncing off the edge
+.moveHorizontal:
+    ld a, [DirX]
+    or a
+    jr z, .moveRight
+    jr .moveLeft
+
+.moveRight: ; scroll horizontally right 1px per frame
+    ld a, [rSCX]
+    dec a
+    ld [rSCX], a
+
+    cp 185 ; detect right-edge collision
+    jr z, .changeLeft
+    jr .moveVertical
+
+.changeLeft: ; change direction to left
+    ld a, 1
+    ld [DirX], a
+    jr .moveVertical
+
+.moveLeft: ; scroll horizontally left 1px per frame
     ld a, [rSCX]
     inc a
-    ld [rSCX], a ; scroll horizontally 1px per frame
+    ld [rSCX], a
 
+    or a ; detect left-edge collision
+    jr z, .changeRight
+    jr .moveVertical
+
+.changeRight: ; change direction to right
+    xor a
+    ld [DirX], a
+
+; move either up or down, bouncing off the edge
+.moveVertical:
+    ld a, [DirY]
+    or a
+    jr z, .moveDown
+    jr .moveUp
+
+.moveDown: ; scroll vertically down 1px per frame
+    ld a, [rSCY]
+    dec a
+    ld [rSCY], a
+
+    cp 119 ; detect bottom-edge collision
+    jr z, .changeUp
+    jr .exit
+
+.changeUp: ; change direction to up
+    ld a, 1
+    ld [DirY], a
+    jr .moveVertical
+
+.moveUp ; scroll vertically up 1px per frame
     ld a, [rSCY]
     inc a
-    ld [rSCY], a ; scroll vertically 1px per frame
+    ld [rSCY], a
 
+    or a ; detect top-edge collision
+    jr z, .changeDown
+    jr .exit
+
+.changeDown: ; change direction to down
+    xor a
+    ld [DirY], a
+
+.exit:
     pop hl
     pop de
     pop af
 
     reti
+
+
+SECTION "Globals", HRAM
+
+DirX::
+    db
+DirY::
+    db
