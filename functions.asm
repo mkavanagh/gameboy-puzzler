@@ -3,6 +3,31 @@
 SECTION "Functions", ROM0
 
 
+; PURPOSE: Set a memory range to contain all zeros
+; IN:
+;  - hl: start address (inclusive)
+;  - bc: number of bytes to zero out
+; OUT:
+;  - hl: address after the last byte which was zeroed out
+;  - bc: 0
+;  - a: 0
+;  - flags: Z1 N0 H0 C0
+; CYCLES: 12N + 7 (where N is number of bytes to be zeroed out)
+ZeroMem:: ; loop: zero out each byte in range
+    ld a, b
+    or c
+    ret z ; return if no bytes remain
+
+    xor a ; (ld a, 0)
+
+    ld [hl+], a ; zero out byte and move to next
+    dec bc ; decrease bytes remaining
+
+    jr ZeroMem
+; end loop
+; end ZeroMem
+
+
 ; PURPOSE: Copy a specified number of bytes
 ; IN:
 ;  - hl: source address
@@ -14,7 +39,7 @@ SECTION "Functions", ROM0
 ;  - bc: 0
 ;  - a: 0
 ;  - flags: Z1 N0 H0 C0
-; CYCLES: 15N + 6 (where N is number of bytes to be copied)
+; CYCLES: 15N + 7 (where N is number of bytes to be copied)
 CopyBytes:: ; loop: copy each byte to destination
     ld a, b
     or c

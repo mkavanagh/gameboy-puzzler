@@ -11,7 +11,7 @@ INCLUDE "lcd.inc"
 ; done here - we have just enough instructions to jump to a "real" entrypoint
 ; for the program.
 SECTION "Header", ROM0[$0100]
-    nop
+    di
     jp Start
 
     ; Pad the header with zeros - the real data is written by the toolchain
@@ -27,6 +27,24 @@ SECTION "Header", ROM0[$0100]
 SECTION "Main", ROM0
 
 Start::
+; step: zero out RAM
+
+    ld hl, $C000
+    ld bc, $D000 - $C000
+    call ZeroMem ; zero out WRAM0
+
+    ; move stack from HRAM to WRAM0 (stack operations can access WRAM0 just as
+    ; fast as HRAM, but _we_ can access HRAM faster than WRAM0 - so it makes no
+    ; sense to keep the stack in HRAM)
+    ld sp, $CFFF
+
+    ld hl, $D000
+    ld bc, $E000 - $D000
+    call ZeroMem ; zero out WRAM1
+
+    ld hl, $FF80
+    ld bc, $FFFF - $FF80
+    call ZeroMem ; zero out HRAM
 
 ; step: prepare VRAM for initialisation
 
@@ -35,19 +53,20 @@ Start::
     xor a ; (ld a, 0)
     ld [rLCDC], a ; turn off the LCD so we can access VRAM at our leisure
 
+    ld hl, $8000
+    ld bc, $A000 - $8000
+    call ZeroMem ; zero out VRAM
+
+    ld hl, $FE00
+    ld bc, $FEA0 - $FE00
+    call ZeroMem ; zero out OAM
+
 ; step: load font tile data into VRAM
 
     ld hl, FontTiles ; source address
     ld de, _VRAM9000 ; destination address (tile data block 2)
     ld bc, FontTilesEnd - FontTiles ; number of bytes to be copied
     call CopyBytes
-
-; step: fill the tile map with our desired characters
-; TODO blank out tiles and tile map first
-
-    ld hl, HelloStr ; source address
-    ld de, _SCRN0 ; destination address (tile map 0)
-    call WriteStr
 
 ; step: finish initialisation
 
@@ -64,10 +83,44 @@ Start::
     ld a, LCDCF_ON | LCDCF_BGON
     ld [rLCDC], a ; turn screen on, display background
 
-; step: main loop
+; step: enable interrupts
 
-.loop: ; loop: spin indefinitely
+    ld a, IEF_VBLANK
+    ldh [rIE], a ; enable VBlank interrupt
+
+    xor a ; (ld a, 0)
+    ld [rIF], a ; clear pending interrupts before reenabling
+    ei
+
+; step: idle loop
+
+.mainLoop: ; loop: spin indefinitely
     halt
     nop
-    jr .loop
+    jr .mainLoop
 ; end loop
+
+VBlank::
+; step: fill the tile map with our desired characters
+
+    push af
+    push de
+    push hl
+
+    ld hl, HelloStr ; source address
+    ld de, _SCRN0 ; destination address (tile map 0)
+    call WriteStr
+
+    ld a, [rSCX]
+    inc a
+    ld [rSCX], a ; scroll horizontally 1px per frame
+
+    ld a, [rSCY]
+    inc a
+    ld [rSCY], a ; scroll vertically 1px per frame
+
+    pop hl
+    pop de
+    pop af
+
+    reti

@@ -31,6 +31,7 @@ SECTION "RST8", ROM0[$0038]
 
 
 SECTION "VBlank", ROM0[$0040]
+    jp VBlank
     reti
 
 
