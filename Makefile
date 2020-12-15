@@ -1,3 +1,7 @@
+ASM=rgbasm --halt-without-nop --preserve-ld
+LINK=rgblink
+FIX=rgbfix --validate --pad-value 0
+
 ifeq ($(OS),Windows_NT)
 	DELETE=del
 else
@@ -5,19 +9,26 @@ else
 endif
 
 all: main.gb
-	rgbfix -v -p 0 main.gb
+	$(FIX) main.gb
 
-main.gb: main.o functions.o vectors.o
-	rgblink -o main.gb -m main.map -n main.sym main.o functions.o vectors.o
+main.gb: main.o functions.o vectors.o font.o messages.o
+	$(LINK) -o main.gb -m main.map -n main.sym main.o functions.o vectors.o \
+		font.o messages.o
 
-main.o: main.asm hardware.inc font.chr
-	rgbasm -o main.o main.asm
+main.o: main.asm hardware.inc lcd.inc font.chr
+	$(ASM) -o main.o main.asm
 
 functions.o: functions.asm
-	rgbasm -o functions.o functions.asm
+	$(ASM) -o functions.o functions.asm
 
 vectors.o: vectors.asm
-	rgbasm -o vectors.o vectors.asm
+	$(ASM) -o vectors.o vectors.asm
+
+font.o: font.asm
+	$(ASM) -o font.o font.asm
+
+messages.o: messages.asm
+	$(ASM) -o messages.o messages.asm
 
 clean:
 	$(DELETE) *.gb *.map *.sym *.o

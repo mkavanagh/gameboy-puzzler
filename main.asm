@@ -1,5 +1,7 @@
 INCLUDE "hardware.inc"
 
+INCLUDE "lcd.inc"
+
 
 ; PURPOSE: Contains cartridge metadata and execution entrypoint
 ; LABELS: None
@@ -10,7 +12,7 @@ INCLUDE "hardware.inc"
 ; for the program.
 SECTION "Header", ROM0[$0100]
     nop
-    jp start
+    jp Start
 
     ; Pad the header with zeros - the real data is written by the toolchain
     ds $0150 - @
@@ -18,36 +20,33 @@ SECTION "Header", ROM0[$0100]
 
 ; PURPOSE: Program initialisation and main loop
 ; LABELS:
-;  - start: program entrypoint
+;  - Start: program entrypoint
 ;
 ; We initialise the program by loading required data into VRAM, configuring
 ; system parameters (screen, sound etc.) and then entering the main loop.
 SECTION "Main", ROM0
-start:
+
+Start::
 
 ; step: prepare VRAM for initialisation
 
-.waitVBlank: ; loop: wait for LCD to enter VBlank
-    ld a, [rLY]
-    cp SCRN_Y
-    jr c, .waitVBlank
-; end loop
+    WaitVBlank
 
     xor a ; (ld a, 0)
-    ld [rLCDC], a ; turn off the LCD so we can access VRAM
+    ld [rLCDC], a ; turn off the LCD so we can access VRAM at our leisure
 
 ; step: load font tile data into VRAM
 
-    ld hl, fontTiles ; source address
-    ld de, _VRAM9000 ; destination address
-    ld bc, fontTilesEnd - fontTiles ; number of bytes to be copied
+    ld hl, FontTiles ; source address
+    ld de, _VRAM9000 ; destination address (tile data block 2)
+    ld bc, FontTilesEnd - FontTiles ; number of bytes to be copied
     call CopyBytes
 
 ; step: fill the tile map with our desired characters
 ; TODO blank out tiles and tile map first
 
-    ld hl, helloStr ; source address
-    ld de, _SCRN0 ; destination address
+    ld hl, HelloStr ; source address
+    ld de, _SCRN0 ; destination address (tile map 0)
     call WriteStr
 
 ; step: finish initialisation
@@ -68,26 +67,7 @@ start:
 ; step: main loop
 
 .loop: ; loop: spin indefinitely
+    halt
+    nop
     jr .loop
 ; end loop
-
-
-SECTION "Font", ROM0
-; PURPOSE: Contains font tile data
-; LABELS:
-;  - FontTiles: start of font tile data
-;  - FontTilesEnd: end of font tile data
-;
-; Contains 128 tiles corresponding to ASCII characters.
-
-fontTiles:
-INCBIN "font.chr"
-fontTilesEnd:
-
-
-SECTION "Messages", ROM0
-; PURPOSE: Contains strings for displayable messages
-; LABELS: (as below)
-
-helloStr:
-    db "Hello World!", 0

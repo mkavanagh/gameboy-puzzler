@@ -2,6 +2,7 @@
 ; LABELS: (as below)
 SECTION "Functions", ROM0
 
+
 ; PURPOSE: Copy a specified number of bytes
 ; IN:
 ;  - hl: source address
@@ -28,6 +29,7 @@ CopyBytes:: ; loop: copy each byte to destination
     jr CopyBytes
 ; end loop
 ; end CopyBytes
+
 
 ; PURPOSE: Copy a nul-terminated string (excluding the terminator)
 ; IN:
