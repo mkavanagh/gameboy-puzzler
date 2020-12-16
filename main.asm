@@ -124,22 +124,20 @@ VBlank::
     ld l, a
 
 ; move either right or left, bouncing off the edge
-.moveHorizontal:
     ld a, [DirX]
     or a
-    jr z, .moveRight
-    jr .moveLeft
+    jr nz, .moveLeft
 
-.moveRight: ; scroll horizontally right 1px per frame
+; scroll horizontally right 1px per frame
     ld a, [rSCX]
     dec a
     ld [rSCX], a
 
+ ; detect right-edge collision
     xor $FF ; (xpos = 256 - scrollx)
     add h ; add text width in pixels
-    cp SCRN_X ; detect right-edge collision
-    jr z, .changeLeft
-    jr .moveVertical
+    cp SCRN_X
+    jr nz, .moveVertical
 
 .changeLeft: ; change direction to left
     ld a, 1
@@ -151,48 +149,46 @@ VBlank::
     inc a
     ld [rSCX], a
 
-    or a ; detect left-edge collision
-    jr z, .changeRight
-    jr .moveVertical
+ ; detect left-edge collision
+    or a
+    jr nz, .moveVertical
 
-.changeRight: ; change direction to right
-    xor a
+ ; change direction to right
+    xor a ; (ld a, 0)
     ld [DirX], a
 
-; move either up or down, bouncing off the edge
-.moveVertical:
+.moveVertical: ; move either up or down, bouncing off the edge
     ld a, [DirY]
     or a
-    jr z, .moveDown
-    jr .moveUp
+    jr nz, .moveUp
 
-.moveDown: ; scroll vertically down 1px per frame
+; scroll vertically down 1px per frame
     ld a, [rSCY]
     dec a
     ld [rSCY], a
 
+ ; detect bottom-edge collision
     xor $FF ; (ypos = 256 - scrolly)
     add l ; add text height in pixels
-    cp SCRN_Y ; detect bottom-edge collision
-    jr z, .changeUp
-    jr .exit
+    cp SCRN_Y
+    jr nz, .exit
 
-.changeUp: ; change direction to up
+; change direction to up
     ld a, 1
     ld [DirY], a
     jr .moveVertical
 
-.moveUp ; scroll vertically up 1px per frame
+.moveUp: ; scroll vertically up 1px per frame
     ld a, [rSCY]
     inc a
     ld [rSCY], a
 
-    or a ; detect top-edge collision
-    jr z, .changeDown
-    jr .exit
+; detect top-edge collision
+    or a
+    jr nz, .exit
 
-.changeDown: ; change direction to down
-    xor a
+; change direction to down
+    xor a ; (ld a, 0)
     ld [DirY], a
 
 .exit:
