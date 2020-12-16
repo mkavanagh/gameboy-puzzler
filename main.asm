@@ -110,15 +110,15 @@ VBlank::
 
     ld hl, HelloStr ; source address
     ld de, _SCRN0 ; destination address (tile map 0)
-    call WriteStr_GetLen
+    call WriteStr
 
-    ld a, c ; width of text in tiles (assuming < 255)
+    ld a, [HelloStr] ; width of text in tiles
     rla
     rla
     rla ; multiply by 8 to get width in pixels
     ld h, a
 
-    ld a, 1 ; height of text in tiles (WriteStr_* can only write a single line)
+    ld a, 1 ; height of text in tiles (WriteStr can only write a single line)
     rla
     rla
     rla ; multiply by 8 to get height in pixels
