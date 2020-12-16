@@ -104,20 +104,21 @@ VBlank::
 ; step: fill the tile map with our desired characters
 
     push af
+    push bc
     push de
     push hl
 
     ld hl, HelloStr ; source address
     ld de, _SCRN0 ; destination address (tile map 0)
-    call WriteStr
+    call WriteStr_GetLen
 
-    ld a, 12 ; width of text in tiles
+    ld a, c ; width of text in tiles (assuming < 255)
     rla
     rla
     rla ; multiply by 8 to get width in pixels
     ld h, a
 
-    ld a, 1 ; height of text in tiles
+    ld a, 1 ; height of text in tiles (WriteStr_* can only write a single line)
     rla
     rla
     rla ; multiply by 8 to get height in pixels
@@ -194,6 +195,7 @@ VBlank::
 .exit:
     pop hl
     pop de
+    pop bc
     pop af
 
     reti

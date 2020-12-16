@@ -78,3 +78,47 @@ WriteStr:: ; loop: copy each character to destination
     jr WriteStr
 ; end loop
 ; end WriteStr
+
+
+; PURPOSE: Copy a nul-terminated string (excluding the terminator) and get
+; the length of the string
+; IN:
+;  - hl: source address
+;  - de: destination address
+; OUT:
+;  - hl: address after the nul character in the source
+;  - de: address after the last character in the destination
+;  - bc: number of characters written
+;  - a: 0
+;  - flags: Z1 N0 H1 C0
+; CYCLES: 12N + 18 (where N is the length of the string)
+WriteStr_GetLen::
+; store start position
+    ld b, d ; 1
+    ld c, e ; 1
+
+.loop: ; loop: copy each character to destination
+    ld a, [hl+] ; read character and move to next ; 2
+
+    and a ; 1
+    jr z, .exit ; stop if character is terminator ; 3/2
+
+    ld [de], a ; write character ; 2
+    inc de ; move to next ; 2
+
+    jr .loop ; 3
+; end loop
+
+.exit:
+; calculate low byte of character count
+    ld a, e ; 1
+    sub c ; 1
+    ld c, a ; 1
+
+; calculate high byte of character count
+    ld a, d ; 1
+    sbc b ; 1
+    ld b, a ; 1
+
+    ret ; 4
+; end WriteStr_GetLen

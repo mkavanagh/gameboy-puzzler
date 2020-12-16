@@ -5,4 +5,4 @@
 SECTION "Messages", ROM0
 
 HelloStr::
-    db "Hello World!", 0
+    db "Hello world!", 0
