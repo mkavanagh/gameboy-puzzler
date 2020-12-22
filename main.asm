@@ -12,7 +12,7 @@ INCLUDE "lcd.inc"
 ; for the program.
 SECTION "Header", ROM0[$0100]
     di
-    jp Start
+    jp start
 
     ; Pad the header with zeros - the real data is written by the toolchain
     ds $0150 - @
@@ -26,12 +26,14 @@ SECTION "Header", ROM0[$0100]
 ; system parameters (screen, sound etc.) and then entering the main loop.
 SECTION "Main", ROM0
 
-Start::
+start::
 ; step: zero out RAM
+
+    xor a ; (ld a, 0)
 
     ld hl, $C000
     ld bc, $D000 - $C000
-    call ZeroMem ; zero out WRAM0
+    call SetMem ; zero out WRAM0
 
     ; move stack from HRAM to WRAM0 (stack operations can access WRAM0 just as
     ; fast as HRAM, but _we_ can access HRAM faster than WRAM0 - so it makes no
@@ -40,26 +42,27 @@ Start::
 
     ld hl, $D000
     ld bc, $E000 - $D000
-    call ZeroMem ; zero out WRAM1
+    call SetMem ; zero out WRAM1
 
     ld hl, $FF80
     ld bc, $FFFF - $FF80
-    call ZeroMem ; zero out HRAM
+    call SetMem ; zero out HRAM
 
 ; step: prepare VRAM for initialisation
 
     WaitVBlank
 
     xor a ; (ld a, 0)
+
     ld [rLCDC], a ; turn off the LCD so we can access VRAM at our leisure
 
     ld hl, $8000
     ld bc, $A000 - $8000
-    call ZeroMem ; zero out VRAM
+    call SetMem ; zero out VRAM
 
     ld hl, $FE00
     ld bc, $FEA0 - $FE00
-    call ZeroMem ; zero out OAM
+    call SetMem ; zero out OAM
 
 ; step: load font tile data into VRAM
 
@@ -108,11 +111,11 @@ VBlank::
     push de
     push hl
 
-    ld hl, HelloStr ; source address
+    ld hl, helloStr ; source address
     ld de, _SCRN0 ; destination address (tile map 0)
     call WriteStr
 
-    ld a, [HelloStr] ; width of text in tiles
+    ld a, [helloStr] ; width of text in tiles
     rla
     rla
     rla ; multiply by 8 to get width in pixels
@@ -125,7 +128,7 @@ VBlank::
     ld l, a
 
 ; move either right or left, bouncing off the edge
-    ld a, [DirX]
+    ld a, [dirX]
     or a
     jr nz, .moveLeft
 
@@ -135,14 +138,14 @@ VBlank::
     ld [rSCX], a
 
  ; detect right-edge collision
-    xor $FF ; (xpos = 256 - scrollx)
+    cpl ; (xpos = 256 - scrollx)
     add h ; add text width in pixels
     cp SCRN_X
     jr nz, .moveVertical
 
 .changeLeft: ; change direction to left
     ld a, 1
-    ld [DirX], a
+    ld [dirX], a
     jr .moveVertical
 
 .moveLeft: ; scroll horizontally left 1px per frame
@@ -156,10 +159,10 @@ VBlank::
 
  ; change direction to right
     xor a ; (ld a, 0)
-    ld [DirX], a
+    ld [dirX], a
 
 .moveVertical: ; move either up or down, bouncing off the edge
-    ld a, [DirY]
+    ld a, [dirY]
     or a
     jr nz, .moveUp
 
@@ -169,14 +172,14 @@ VBlank::
     ld [rSCY], a
 
  ; detect bottom-edge collision
-    xor $FF ; (ypos = 256 - scrolly)
+    cpl ; (ypos = 256 - scrolly)
     add l ; add text height in pixels
     cp SCRN_Y
     jr nz, .exit
 
 ; change direction to up
     ld a, 1
-    ld [DirY], a
+    ld [dirY], a
     jr .moveVertical
 
 .moveUp: ; scroll vertically up 1px per frame
@@ -190,7 +193,7 @@ VBlank::
 
 ; change direction to down
     xor a ; (ld a, 0)
-    ld [DirY], a
+    ld [dirY], a
 
 .exit:
     pop hl
@@ -203,7 +206,5 @@ VBlank::
 
 SECTION "Globals", HRAM
 
-DirX::
-    db
-DirY::
-    db
+dirX:: db
+dirY:: db

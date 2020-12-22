@@ -5,6 +5,6 @@
 ; string.
 SECTION "Messages", ROM0
 
-HelloStr::
-    db .end - (HelloStr + 1), "Hello world!"
+helloStr::
+    db .end - (helloStr + 1), "Hello world!"
 .end:

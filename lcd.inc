@@ -4,6 +4,10 @@
 INCLUDE "hardware.inc"
 
 
+IF !DEF(LCD_INC)
+LCD_INC SET 1
+
+
 ; PURPOSE: Wait for the LCD to enter VBlank
 ; IN: None
 ; DESTROYS: af
@@ -17,3 +21,7 @@ WaitVBlank: MACRO
 ; end loop
 ENDM
 ; end WaitVBlank
+
+
+ENDC
+; end LCD_INC
