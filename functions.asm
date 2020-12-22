@@ -1,17 +1,22 @@
 ; PURPOSE: Contains common general-purpose functions
+;
 ; LABELS: (as below)
 SECTION "Functions", ROM0
 
 
 ; PURPOSE: Set a memory range to contain the same value for each byte
+;
 ; IN:
 ;  - hl: start address (inclusive)
 ;  - bc: number of bytes to set
 ;  - a: value to set
+;
 ; OUT:
 ;  - hl: address after the last byte which was set
 ;  - a: the value which was set
+;
 ; DESTROYS: f, bc
+;
 ; CYCLES: 6N + 3(N/256) + 15 (where N is number of bytes to be set)
 SetMem::
     inc b
@@ -34,14 +39,18 @@ SetMem::
 
 
 ; PURPOSE: Copy a specified number of bytes
+;
 ; IN:
 ;  - hl: source address
 ;  - de: destination address
 ;  - bc: number of bytes to be copied
+;
 ; OUT:
 ;  - hl: address after the last byte in the source
 ;  - de: address after the last byte in the destination
+;
 ; DESTROYS: af, bc
+;
 ; CYCLES: 10N + 3(N/256) + 15 (where N is number of bytes to be copied)
 CopyBytes::
     inc b
@@ -67,13 +76,16 @@ CopyBytes::
 
 
 ; PURPOSE: Copy a chunk of memory to an 8-bit aligned start address ($xx00)
+;
 ; IN:
 ;  - hl: source address (end, inclusive)
 ;  - de: destination address (end, inclusive)
 ; OUT:
 ;  - hl: address of the first byte in the source
 ;  - de: address of the first byte in the destination
+;
 ; DESTROYS: af
+;
 ; CYCLES: 8N + 3, min 13 (where N is number of bytes to be copied, at least 1)
 CopyBytes_Aligned_NonEmpty::
     xor a ; (ld a, 0)
@@ -81,13 +93,17 @@ CopyBytes_Aligned_NonEmpty::
     jr z, CopyBytes_Aligned_exit
 
 ; PURPOSE: Copy a chunk of memory to an 8-bit aligned start address ($xx00)
+;
 ; IN:
 ;  - hl: source address (end, inclusive - at least $xx01)
 ;  - de: destination address (end, inclusive - at least $xx01)
+;
 ; OUT:
 ;  - hl: address of the first byte in the source
 ;  - de: address of the first byte in the destination
+;
 ; DESTROYS: af
+;
 ; CYCLES: 8N - 1 (where N is number of bytes to be copied, at least 2)
 CopyBytes_Aligned_Multiple:: ; loop: copy each byte to destination
     ld a, [hl-] ; read byte and move to prev
@@ -108,13 +124,17 @@ CopyBytes_Aligned_exit:
 
 
 ; PURPOSE: Copy a chunk of memory to an 8-bit aligned end address ($xxFF)
+;
 ; IN:
 ;  - hl: source address
 ;  - de: destination address
+;
 ; OUT:
 ;  - hl: address after the last byte in the source
 ;  - de: address after the last byte in the destination
+;
 ; DESTROYS: af
+;
 ; CYCLES: 8N + 3 (where N is number of bytes to be copied, at least 1)
 CopyBytes_EndAligned_NonEmpty:: ; loop: copy each byte to destination
     ld a, [hl+] ; read byte and move to next
@@ -130,14 +150,18 @@ CopyBytes_EndAligned_NonEmpty:: ; loop: copy each byte to destination
 
 
 ; PURPOSE: Copy a specified number of bytes, without crossing 8-bit alignment
+;
 ; IN:
 ;  - hl: source address
 ;  - de: destination address
 ;  - c: number of bytes to be copied
+;
 ; OUT:
 ;  - hl: address after the last byte in the source
 ;  - de: address after the last byte in the destination
+;
 ; DESTROYS: af, c
+;
 ; CYCLES: 9N + 7 (where N is number of bytes to be copied)
 CopyBytes_InAligned::
     xor a ; (ld a, 0)
@@ -145,14 +169,18 @@ CopyBytes_InAligned::
     ret nz ; return if no bytes remain, or continue below
 
 ; PURPOSE: Copy a specified number of bytes, without crossing 8-bit alignment
+;
 ; IN:
 ;  - hl: source address
 ;  - de: destination address
 ;  - c: number of bytes to be copied (non-zero)
+;
 ; OUT:
 ;  - hl: address after the last byte in the source
 ;  - de: address after the last byte in the destination
+;
 ; DESTROYS: af, c
+;
 ; CYCLES: 9N + 3 (where N is number of bytes to be copied, at least 1)
 CopyBytes_InAligned_NonEmpty:: ; loop: copy each byte to destination
     ld a, [hl+] ; read byte and move to next
@@ -170,13 +198,17 @@ CopyBytes_InAligned_NonEmpty:: ; loop: copy each byte to destination
 
 
 ; PURPOSE: Copy a length-prefixed string (excluding the length byte)
+;
 ; IN:
 ;  - hl: source address
 ;  - de: destination address
+;
 ; OUT:
 ;  - hl: address after last character read
 ;  - de: address after last character written
+;
 ; DESTROYS: af, c
+;
 ; CYCLES: 10N + 9, min 8 (where N is the length of the string)
 WriteStr::
     ld a, [hl+] ; read length and move to first character

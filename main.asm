@@ -4,6 +4,7 @@ INCLUDE "lcd.inc"
 
 
 ; PURPOSE: Contains cartridge metadata and execution entrypoint
+;
 ; LABELS: None
 ;
 ; Execution starts at $100, while $104 to $14F contains required header data in
@@ -11,19 +12,36 @@ INCLUDE "lcd.inc"
 ; done here - we have just enough instructions to jump to a "real" entrypoint
 ; for the program.
 SECTION "Header", ROM0[$0100]
-    di
+    di ; disable interrupts until we're ready to handle them
     jp start
 
-    ; Pad the header with zeros - the real data is written by the toolchain
-    ds $0150 - @
+    ; Cartridge header data - beginning with required logo
+    NINTENDO_LOGO
+
+    db "Word Puzzle", 0, 0, 0, 0, 0 ;  $0134 - $0143: game title
+    db 0, 0 ; $0144 - $0145: licensee (0: no licensee)
+    db 0 ; $0146: SGB flag (0: no SGB support)
+    db $01 ; $0147: cartridge type (01h: MBC1)
+    db 0 ; $0148: ROM size (to be set during build)
+    db 0 ; $0149: external RAM size (0: none)
+    db 0 ; $014A: region code (0: Japan)
+    db 0 ; $014B: licensee code (old. 0: none)
+    db 0 ; $014C: ROM version number
+    db 0 ; $014D: header checksum (to be set during build)
+    db 0, 0 ; $014E - $014F: global checksum (to be set during build)
+
+    ASSERT @ == $0150, "Header must end at $0150"
 
 
 ; PURPOSE: Program initialisation and main loop
-; LABELS:
-;  - Start: program entrypoint
 ;
-; We initialise the program by loading required data into VRAM, configuring
-; system parameters (screen, sound etc.) and then entering the main loop.
+; LABELS:
+;  - start: program entrypoint
+;  - vBlank: vBlank handler
+;
+; We initialise the program by loading required data into VRAM and configuring
+; system parameters (screen, sound etc.). We then enter an idle loop, with
+; frame rendering performed by the vertical blank interrupt handler.
 SECTION "Main", ROM0
 
 start::
@@ -66,9 +84,9 @@ start::
 
 ; step: load font tile data into VRAM
 
-    ld hl, FontTiles ; source address
+    ld hl, fontTiles ; source address
     ld de, _VRAM9000 ; destination address (tile data block 2)
-    ld bc, FontTilesEnd - FontTiles ; number of bytes to be copied
+    ld bc, fontTilesEnd - fontTiles ; number of bytes to be copied
     call CopyBytes
 
 ; step: finish initialisation
@@ -95,6 +113,37 @@ start::
     ld [rIF], a ; clear pending interrupts before reenabling
     ei
 
+; step: find words
+
+    ld hl, words
+    ld de, graph
+    jr .findNextState
+
+.moveNextState:
+    ld e, a
+.findNextState:
+    ld b, [hl+]
+.checkNextTransition:
+    ld a, [de]
+
+    and a
+    jr z, .findNextWord
+
+    inc e
+
+    cp b
+    jr z, .moveNextState
+
+    inc e
+    jr .checkNextTransition
+.findNextWord:
+    ld a, [hl+]
+
+    and a
+    jr nz, .findNextWord
+
+    jr .findNextState
+
 ; step: idle loop
 
 .mainLoop: ; loop: spin indefinitely
@@ -103,7 +152,7 @@ start::
     jr .mainLoop
 ; end loop
 
-VBlank::
+vBlank::
 ; step: fill the tile map with our desired characters
 
     push af
@@ -115,86 +164,6 @@ VBlank::
     ld de, _SCRN0 ; destination address (tile map 0)
     call WriteStr
 
-    ld a, [helloStr] ; width of text in tiles
-    rla
-    rla
-    rla ; multiply by 8 to get width in pixels
-    ld h, a
-
-    ld a, 1 ; height of text in tiles (WriteStr can only write a single line)
-    rla
-    rla
-    rla ; multiply by 8 to get height in pixels
-    ld l, a
-
-; move either right or left, bouncing off the edge
-    ld a, [dirX]
-    or a
-    jr nz, .moveLeft
-
-; scroll horizontally right 1px per frame
-    ld a, [rSCX]
-    dec a
-    ld [rSCX], a
-
- ; detect right-edge collision
-    cpl ; (xpos = 256 - scrollx)
-    add h ; add text width in pixels
-    cp SCRN_X
-    jr nz, .moveVertical
-
-.changeLeft: ; change direction to left
-    ld a, 1
-    ld [dirX], a
-    jr .moveVertical
-
-.moveLeft: ; scroll horizontally left 1px per frame
-    ld a, [rSCX]
-    inc a
-    ld [rSCX], a
-
- ; detect left-edge collision
-    or a
-    jr nz, .moveVertical
-
- ; change direction to right
-    xor a ; (ld a, 0)
-    ld [dirX], a
-
-.moveVertical: ; move either up or down, bouncing off the edge
-    ld a, [dirY]
-    or a
-    jr nz, .moveUp
-
-; scroll vertically down 1px per frame
-    ld a, [rSCY]
-    dec a
-    ld [rSCY], a
-
- ; detect bottom-edge collision
-    cpl ; (ypos = 256 - scrolly)
-    add l ; add text height in pixels
-    cp SCRN_Y
-    jr nz, .exit
-
-; change direction to up
-    ld a, 1
-    ld [dirY], a
-    jr .moveVertical
-
-.moveUp: ; scroll vertically up 1px per frame
-    ld a, [rSCY]
-    inc a
-    ld [rSCY], a
-
-; detect top-edge collision
-    or a
-    jr nz, .exit
-
-; change direction to down
-    xor a ; (ld a, 0)
-    ld [dirY], a
-
 .exit:
     pop hl
     pop de
@@ -205,6 +174,3 @@ VBlank::
 
 
 SECTION "Globals", HRAM
-
-dirX:: db
-dirY:: db

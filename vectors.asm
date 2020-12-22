@@ -1,3 +1,34 @@
+; PURPOSE: Reset vectors and interrupt handlers
+;
+; LABELS: None
+;
+; Reset vectors are small subroutines with fixed sizes and locations, which can
+; be called with a dedicated instruction (RST) that is faster and more compact
+; than the standard CALL instruction. They can be used to implement small,
+; frequently used routines with greater space efficiency than macros, and
+; with greater time and space efficiency than normal subroutines. As with
+; normal subroutines, the RET instruction is used to exit the reset vector and
+; return execution to the address on the top of the stack.
+;
+; Interrupt handlers are subroutines which can be invoked at any time during
+; the execution of normal code, provided that:
+;  - interrupts are enabled, and
+;  - an interruptible event has occurred, and
+;  - the interrupt handler for this event is enabled.
+;
+; When an interrupt is triggered, further interrupts will be disabled.
+; Normally, the RETI instruction (rather than the RET instruction) should be
+; used to exit an interrupt handler; in addition to moving execution to the
+; address on the top of the stack, this instruction will re-enable interrupts.
+;
+; Interrupts are used to respond to system or user-driven events, such as
+; timers, changes in the screen state, or joypad input.
+;
+; Even when not all reset vectors and/or interrupt handlers are all in use, it
+; is good practice to define them at the correct locations and include a
+; RET/RETI instruction as appropriate.
+
+
 SECTION "RST1", ROM0[$0000]
     ret
 
@@ -31,7 +62,7 @@ SECTION "RST8", ROM0[$0038]
 
 
 SECTION "VBlank", ROM0[$0040]
-    jp VBlank
+    jp vBlank
 
 
 SECTION "STAT", ROM0[$0048]
