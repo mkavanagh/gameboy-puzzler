@@ -135,8 +135,27 @@ vBlank::
     push de
     push hl
 
+    ld hl, matchCount ; source address
+    ld de, _SCRN0 + 12 ; destination address (tile map 0, right -8)
+REPT 4
+    ld a, [hl+]
+    ld b, a
+
+    and $F0
+    swap a
+    add $30
+    ld [de], a
+    inc de
+    ld a, b
+
+    and $0F
+    add $30
+    ld [de], a
+    inc de
+ENDR
+
     ld hl, helloStr ; source address
-    ld de, _SCRN0 ; destination address (tile map 0)
+    ld de, _SCRN0 + 64 ; destination address (tile map 0, third line)
     call WriteStr
 
     pop hl

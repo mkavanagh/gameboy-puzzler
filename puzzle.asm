@@ -8,14 +8,17 @@ SECTION "Puzzle", ROM0
 ;  - de: start address of finite state machine
 ;
 ; OUT:
-;  - [matchCount]: the number of matches found
+;  - [matchCount]: number of matches found (BCD, 4-byte big-endian)
 ;
-; DESTROYS: af, b
+; DESTROYS: af, bc, de, hl
 SolvePuzzle::
     ; reset match count
     xor a ; (ld a, 0)
-    ld [matchCount], a
-    ld [matchCount+1], a
+    ld c, LOW(matchCount)
+REPT 4
+    ld [c], a
+    inc c
+ENDR
 
     jr .findNextState
 
@@ -55,24 +58,21 @@ SolvePuzzle::
 
 .acceptMatch:
     ; increment match count
-    push hl ; save current input position
-    ld hl, matchCount
+    ld c, LOW(matchCountEnd - 1)
 
-    di ; disable interrupts so we can update 16-bit value atomically
+    di ; disable interrupts so we can update multi-byte values atomically
 
-    ; increment low-byte
-    inc [hl]
-
-    jr nz, .afterMatch
-
-    ; carry to high-byte if necessary
-    inc hl
-    inc [hl]
+REPT 4 ; increment each two-digit BCD byte
+    ldh a, [c]
+    inc a
+    daa
+    ldh [c], a
+    jr nc, .afterMatch
+    dec c
+ENDR
 
 .afterMatch:
     ei ; reenable interrupts
-
-    pop hl ; restore current input position
 
 .afterInput:
     ld e, 0 ; reset state machine
@@ -88,6 +88,7 @@ SolvePuzzle::
 
 SECTION "PuzzleGlobals", HRAM
 
-; number of matches found
+; number of matches found (BCD, big-endian)
 matchCount::
-    ds 2
+    ds 4
+matchCountEnd::
