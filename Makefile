@@ -11,9 +11,9 @@ endif
 all: main.gb
 	$(FIX) main.gb
 
-main.gb: main.o functions.o vectors.o font.o messages.o graph.o
+main.gb: main.o functions.o vectors.o font.o messages.o graph.o words.o puzzle.o
 	$(LINK) -o main.gb -m main.map -n main.sym main.o functions.o vectors.o \
-		font.o messages.o graph.o
+		font.o messages.o graph.o words.o puzzle.o
 
 main.o: main.asm hardware.inc lcd.inc font.chr
 	$(ASM) -o main.o main.asm
@@ -35,6 +35,9 @@ graph.o: graph.asm graph.inc
 
 words.o: words.asm
 	$(ASM) -o words.o words.asm
+
+puzzle.o: puzzle.asm
+	$(ASM) -o puzzle.o puzzle.asm
 
 clean:
 	$(DELETE) *.gb *.map *.sym *.o

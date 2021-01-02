@@ -42,3 +42,5 @@ graph::
     Graph_Edges "b", "l", "o", "n", "y"
 ._b:
     Graph_Edges "r", "l", "o", "t", "y"
+
+    ASSERT (@ - graph) <= $00FF, "Graph must be no more than 256 bytes"

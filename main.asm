@@ -117,32 +117,7 @@ start::
 
     ld hl, words
     ld de, graph
-    jr .findNextState
-
-.moveNextState:
-    ld e, a
-.findNextState:
-    ld b, [hl+]
-.checkNextTransition:
-    ld a, [de]
-
-    and a
-    jr z, .findNextWord
-
-    inc e
-
-    cp b
-    jr z, .moveNextState
-
-    inc e
-    jr .checkNextTransition
-.findNextWord:
-    ld a, [hl+]
-
-    and a
-    jr nz, .findNextWord
-
-    jr .findNextState
+    call SolvePuzzle
 
 ; step: idle loop
 
@@ -164,7 +139,6 @@ vBlank::
     ld de, _SCRN0 ; destination address (tile map 0)
     call WriteStr
 
-.exit:
     pop hl
     pop de
     pop bc
