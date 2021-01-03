@@ -131,22 +131,19 @@ start::
     and a
     jr z, .mainLoop ; a bank number of zero indicates the end of the index
 
-    ld [rROMB0], a
+    ld [rROMB0], a ; select the given bank
 
     ld b, [hl] ; load the high-byte of the block address
-    inc hl
-
-    ld c, [hl] ; load the low-byte of the block address
     inc hl
 
     push hl ; save the current index position
 
     ld h, b
-    ld l, c
+    ld l, 0
     ld de, graph
     call SolvePuzzle
 
-    pop hl
+    pop hl ; restore the index position
     jr .bankSelect
 ; end loop
 

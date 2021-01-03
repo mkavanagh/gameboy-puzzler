@@ -1,4 +1,4 @@
-max_block_size = 4096
+max_block_size = 256
 
 
 def print_section(block):
@@ -6,7 +6,7 @@ def print_section(block):
         print("")
         print("")
 
-    print("SECTION \"Words [{0}]\", ROMX".format(block))
+    print("SECTION \"Words [{0}]\", ROMX, ALIGN[8, 0]".format(block))
     print("words_{0}:".format(block))
 
 
@@ -39,6 +39,6 @@ with open("/usr/share/dict/words") as f:
 
     for i in range(0, block):
         label = "words_{0}".format(i)
-        print("    db BANK({0}), HIGH({0}), LOW({0})".format(label))
+        print("    db BANK({0}), HIGH({0})".format(label))
 
     print("    db 0")
