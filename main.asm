@@ -21,7 +21,7 @@ SECTION "Header", ROM0[$0100]
     db "Word Puzzle", 0, 0, 0, 0, 0 ;  $0134 - $0143: game title
     db 0, 0 ; $0144 - $0145: licensee (0: no licensee)
     db 0 ; $0146: SGB flag (0: no SGB support)
-    db $01 ; $0147: cartridge type (01h: MBC1)
+    db $19 ; $0147: cartridge type (19h: MBC5)
     db 0 ; $0148: ROM size (to be set during build)
     db 0 ; $0149: external RAM size (0: none)
     db 0 ; $014A: region code (0: Japan)
@@ -115,9 +115,32 @@ start::
 
 ; step: find words
 
-    ld hl, words
+    ld hl, words_index
+
+.bankSelect: ; loop: solve puzzle for each block of words in the index
+    ld a, [hl+] ; load the bank number from the index
+
+    and a
+    jr z, .mainLoop ; a bank number of zero indicates the end of the index
+
+    ld [rROMB0], a
+
+    ld b, [hl] ; load the high-byte of the block address
+    inc hl
+
+    ld c, [hl] ; load the low-byte of the block address
+    inc hl
+
+    push hl ; save the current index position
+
+    ld h, b
+    ld l, c
     ld de, graph
     call SolvePuzzle
+
+    pop hl
+    jr .bankSelect
+; end loop
 
 ; step: idle loop
 

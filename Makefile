@@ -11,9 +11,11 @@ endif
 all: main.gb
 	$(FIX) main.gb
 
-main.gb: main.o functions.o vectors.o font.o messages.o graph.o words.o puzzle.o
+main.gb: main.o functions.o vectors.o font.o messages.o graph.o puzzle.o \
+	dictionary.o
+
 	$(LINK) -o main.gb -m main.map -n main.sym main.o functions.o vectors.o \
-		font.o messages.o graph.o words.o puzzle.o
+		font.o messages.o graph.o puzzle.o dictionary.o
 
 main.o: main.asm hardware.inc lcd.inc font.chr
 	$(ASM) -o main.o main.asm
@@ -33,11 +35,14 @@ messages.o: messages.asm
 graph.o: graph.asm graph.inc
 	$(ASM) -o graph.o graph.asm
 
-words.o: words.asm
-	$(ASM) -o words.o words.asm
-
 puzzle.o: puzzle.asm
 	$(ASM) -o puzzle.o puzzle.asm
 
+dictionary.o: dictionary.asm
+	$(ASM) -o dictionary.o dictionary.asm
+
+dictionary.asm: generate-dictionary.py
+	python generate-dictionary.py > dictionary.asm
+
 clean:
-	$(DELETE) *.gb *.map *.sym *.o
+	$(DELETE) *.gb *.map *.sym *.o dictionary.asm

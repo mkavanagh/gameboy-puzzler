@@ -12,14 +12,6 @@ SECTION "Puzzle", ROM0
 ;
 ; DESTROYS: af, bc, de, hl
 SolvePuzzle::
-    ; reset match count
-    xor a ; (ld a, 0)
-    ld c, LOW(matchCount)
-REPT 4
-    ld [c], a
-    inc c
-ENDR
-
     jr .findNextState
 
 .moveNextState:
@@ -68,6 +60,7 @@ REPT 4 ; increment each two-digit BCD byte
     daa
     ldh [c], a
     jr nc, .afterMatch
+    ccf
     dec c
 ENDR
 
