@@ -101,7 +101,15 @@ start::
 
     ld [rNR52], a ; turn off sound
 
-    ld a, LCDCF_ON | LCDCF_BGON
+    ; set window position to (136, 0), with only the first row of tiles showing
+    ; at the bottom of the screen
+    ; the x position is given as ([rWX] - 7)
+    ld a, 136
+    ld [rWY], a
+    ld a, 7
+    ld [rWX], a
+
+    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_WINON | LCDCF_WIN9C00
     ld [rLCDC], a ; turn screen on, display background
 
 ; step: enable interrupts
@@ -159,8 +167,8 @@ vBlank::
     push hl
 
     ld hl, matchCount ; source address
-    ld de, _SCRN0 + 12 ; destination address (tile map 0, right -8)
-REPT 4
+    ld de, _SCRN1 + 12 ; destination address (tile map 1, right -8)
+REPT 4 ; render each two-digit BCD byte of the score counter
     ld a, [hl+]
     ld b, a
 
@@ -178,7 +186,7 @@ REPT 4
 ENDR
 
     ld hl, helloStr ; source address
-    ld de, _SCRN0 + 64 ; destination address (tile map 0, third line)
+    ld de, _SCRN0 ; destination address (tile map 0)
     call WriteStr
 
     pop hl
