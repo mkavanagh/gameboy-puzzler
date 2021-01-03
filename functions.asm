@@ -197,35 +197,28 @@ CopyBytes_InAligned_NonEmpty:: ; loop: copy each byte to destination
 ; end CopyBytes_AlignedPartial_NonEmpty
 
 
-; PURPOSE: Copy a length-prefixed string (excluding the length byte)
+; PURPOSE: Copy a nul-terminated string (excluding the terminator)
 ;
 ; IN:
 ;  - hl: source address
 ;  - de: destination address
 ;
 ; OUT:
-;  - hl: address after last character read
-;  - de: address after last character written
+;  - hl: address after the nul terminator in the source
+;  - de: address after the last character in the destination
 ;
-; DESTROYS: af, c
+; DESTROYS: af
 ;
-; CYCLES: 10N + 9, min 8 (where N is the length of the string)
-WriteStr::
-    ld a, [hl+] ; read length and move to first character
+; CYCLES: 12N + 8 (where N is the length of the string)
+WriteStr:: ; loop: copy each character to destination
+    ld a, [hl+] ; read character and move to next
 
     and a
-    ret z ; return if length is zero
+    ret z ; return if character is terminator
 
-    ld c, a
-
- .loop: ; loop: copy each character to destination
-    ld a, [hl+]; read character and move to next
     ld [de], a ; write character
     inc de ; move to next
 
-    dec c
-    jr nz, .loop ; loop until no remaining bytes
+    jr WriteStr
 ; end loop
-
-    ret
 ; end WriteStr

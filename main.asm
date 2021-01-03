@@ -182,9 +182,14 @@ REPT 4 ; render each two-digit BCD byte of the score counter
     inc de
 ENDR
 
-    ld hl, helloStr ; source address
+    ld hl, _SCRN0 ; destination address (tile map 0)
+    ld bc, 32 ; number of bytes to write (one row)
+    xor a ; value to set (0)
+    call SetMem ; blank out remaining tiles on row
+
+    ld hl, matchList ; source address
     ld de, _SCRN0 ; destination address (tile map 0)
-    call WriteStr
+    call WriteStr ; write latest match to screen
 
     pop hl
     pop de
